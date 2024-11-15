@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShieldU_Manualchat</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f8fa;
+            --accent-color: #ffd700;
+            --text-color: #333333;
+            --background-color: #e6ecf0;
+            --file-button-color: #e2e8f0;  /* 새로운 파일 버튼 색상 */
+            --file-button-hover-color: #cbd5e1;  /* 호버 시 색상 */
+        }
+
+        body {
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #chatApp {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: var(--primary-color);
+            border-radius: 8px;
+        }
+
+        #header h1 {
+            font-size: 1.5em;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        #pdf-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #pdf-file {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-wrapper label {
+            display: inline-block;
+            padding: 12px 20px;
+            background-color: var(--file-button-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-input-wrapper label:hover {
+            background-color: var(--file-button-hover-color);
+        }
+
+        .file-name {
+            margin-left: 10px;
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+
+
+        #messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: var(--secondary-color);
+            margin-bottom: 20px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin: 12px 0;
+        }
+
+        .user-message, .ai-message {
+            max-width: 70%;
+            padding: 12px 15px;
+            border-radius: 18px;
+            font-size: 0.95em;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            background-color: #ffffff;
+            color: var(--text-color);
+            align-self: flex-start;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        #inputArea {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex-grow: 1;
+            padding: 12px;
+            border-radius: 25px;
+            border: 1px solid #ddd;
+            font-size: 0.95em;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3a7bc8;
+        }
+
+        @media (max-width: 600px) {
+            #chatApp {
+                width: 95%;
+                height: 95vh;
+            }
+
+            .user-message, .ai-message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chatApp">
+        <header id="header">
+            <h1>🛡️ ShieldU</h1>
+        </header>
+
+        <form id="pdf-form" enctype="multipart/form-data">
+            <div class="file-input-wrapper">
+                <input type="file" id="pdf-file" name="pdf" accept="application/pdf" aria-label="PDF 파일 선택">
+                <label for="pdf-file">파일 선택</label>
+                <span class="file-name" id="file-name">선택된 파일 없음</span>
+            </div>
+            <button type="submit">PDF 업로드</button>
+        </form>
+
+        <main id="messages" aria-live="polite"></main>
+
+        <div id="inputArea">
+            <input type="text" id="messageInput" placeholder="여기에 질문을 입력하세요..." aria-label="메시지 입력">
+            <button onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('pdf-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('pdf-file');
+            const formData = new FormData();
+            formData.append('pdf', fileInput.files[0]);
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/upload_pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                alert(result.message);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('PDF 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+            }
+        });
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            const messagesDiv = document.getElementById('messages');
+
+            if (message !== '') {
+                messagesDiv.innerHTML += `<div class="message user-message">${escapeHtml(message)}</div>`;
+                messageInput.value = '';
+
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/ask_question', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ question: message })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    messagesDiv.innerHTML += `<div class="message ai-message">${escapeHtml(result.answer)}</div>`;
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                } catch (error) {
+                    console.error('Error:', error);
+                    messagesDiv.innerHTML += `<div class="message ai-message">오류가 발생했습니다. 다시 시도해주세요.</div>`;
+                }
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        document.getElementById('pdf-file').addEventListener('change', function(event) {
+            const fileName = event.target.files[0] ? event.target.files[0].name : '선택된 파일 없음';
+            document.getElementById('file-name').textContent = fileName;
+        });
+    </script>
+</body>
+</html>

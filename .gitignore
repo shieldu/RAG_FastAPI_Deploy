@@ -1,0 +1,22 @@
+# 가상 환경
+venv/
+ENV/
+env/
+.venv/
+
+# Python 캐시 파일
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 환경 파일
+.env
+
+# 업로드된 파일
+uploads/
+
+# 기타
+.DS_Store
+.idea/
+.vscode/
+*.log
