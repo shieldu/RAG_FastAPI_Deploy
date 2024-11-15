@@ -8,3 +8,4 @@ pypdf
 langchain-community
 python-dotenv
 huggingface-hub
+python-multipart
