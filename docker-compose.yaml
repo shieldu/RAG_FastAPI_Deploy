@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: langchain_app
+    ports:
+      - "8000:8000"  # FastAPI 서버 노출 포트
+    volumes:
+      - ./uploads:/app/uploads  # 업로드 폴더 공유
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}  # 환경 변수 설정
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}  # Hugging Face API 키
+    depends_on:
+      - chromadb
+
+  chromadb:
+    image: chromadb/chromadb:latest
+    container_name: chromadb_service
+    ports:
+      - "8000:8000"  # Chroma DB 포트 노출
+    environment:
+      DB_USER: chromadb_user
+      DB_PASS: chromadb_password
